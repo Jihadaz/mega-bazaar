@@ -1,0 +1,158 @@
+version: '3.8'
+
+networks:
+  megabazaar-network:
+    external: true
+
+services:
+  zookeeper-server:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper-server
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+    volumes:
+      - C:\Users\JIHAD\devops\zookeeper-data:/bitnami/zookeeper
+    networks:
+      - megabazaar-network
+
+  kafka-server:
+    image: bitnami/kafka:latest
+    container_name: kafka-server
+    ports:
+      - "9093:9093"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper-server:2181
+      - KAFKA_LISTENER_SECURITY_PROTOCOL=PLAINTEXT
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-server:9093
+    volumes:
+      - C:\Users\JIHAD\devops\kafka-data:/bitnami/kafka
+    networks:
+      - megabazaar-network
+    depends_on:
+      - zookeeper-server
+
+  catalog-service-db:
+    image: mysql:latest
+    container_name: catalog-service-db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=CatalogService_Db
+    volumes:
+      - C:\Users\JIHAD\devops\mysql\catalog-db:/var/lib/mysql
+    networks:
+      - megabazaar-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  order-service-db:
+    image: mysql:latest
+    container_name: order-service-db
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=OrderService_Db
+    volumes:
+      - C:\Users\JIHAD\devops\mysql\order-db:/var/lib/mysql
+    networks:
+      - megabazaar-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  invoice-service-db:
+    image: mysql:latest
+    container_name: invoice-service-db
+    ports:
+      - "3308:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=InvoiceService_Db
+    volumes:
+      - C:\Users\JIHAD\devops\mysql\invoice-db:/var/lib/mysql
+    networks:
+      - megabazaar-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  catalog-service:
+    build:
+      context: C:\Users\JIHAD\devops\DevopsProject_MYSQL\catalog-service
+    container_name: catalog-service
+    ports:
+      - "8081:8081"
+    volumes:
+      - C:\Users\JIHAD\devops\uploads\catalog:/uploads
+    networks:
+      - megabazaar-network
+    depends_on:
+      - kafka-server
+      - catalog-service-db
+
+  order-service:
+    build:
+      context: C:\Users\JIHAD\devops\DevopsProject_MYSQL\order-service
+    container_name: order-service
+    ports:
+      - "8082:8082"
+    networks:
+      - megabazaar-network
+    depends_on:
+      - kafka-server
+      - order-service-db
+
+  invoice-service:
+    build:
+      context: C:\Users\JIHAD\devops\DevopsProject_MYSQL\invoice-service
+    container_name: invoice-service
+    ports:
+      - "8083:8083"
+    networks:
+      - megabazaar-network
+    depends_on:
+      - kafka-server
+      - invoice-service-db
+
+
+  web-app:
+    build:
+      context: C:\Users\JIHAD\devops\DevopsProject_MYSQL\web-app
+    container_name: web-app
+    ports:
+      - "5173:80"
+    networks:
+      - megabazaar-network
+    depends_on:
+      - gateway-service
+
+
+  gateway-service:
+    build:
+      context: C:\Users\JIHAD\devops\DevopsProject_MYSQL\gateway-service
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    networks:
+      - megabazaar-network
+    depends_on:
+      - catalog-service
+      - order-service
+      - invoice-service
+
+
