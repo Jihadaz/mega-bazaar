@@ -20,7 +20,7 @@ WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
 
 # Set environment variables
-ENV SERVER_PORT=8080
+ENV SERVER_PORT=${GATEWAY_SERVER_PORT}
 
 # Expose the server port
 EXPOSE ${SERVER_PORT}
